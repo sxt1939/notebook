@@ -1,152 +1,214 @@
 
 
-# 主流静态扫描检测工具
+# 1. 主流静态扫描检测工具
 
 ![img](./cpp_lint.png)
 
 
 
-# 编译原理
+# 2. 编译原理
 
 ​		编译器一般分为前端和后端，编译器前端主要负责预处理、词法分析、语法分析、语法检查、生成中间代码等与底层计算机架构无关的工作。
 
 后端以中间代码为输入，首先进行架构无关的代码优化，之后针对不同的机器架构生成不同的机器码，进行汇编链接
 
-![img](./compile.png)
-
-
-
-# clangd/clang-tidy
-
-https://clangd.llvm.org/ clangd官方详细介绍
-
-clang-tidy：
-
-https://clang.llvm.org/extra/clang-tidy/index.html 官方使用使用
-
-https://blog.csdn.net/qq_43577613/article/details/127292732 博客翻译
-
-
-
-# clang-tidy install
-
-1. vscode在扩展中搜索clang-tidy并安装(我们这里需要离线手动安装一下https://marketplace.visualstudio.com/vs)
-
-2. github搜索llvm(https://github.com/llvm/llvm-project/)，找到发布包，下载对应的win版本，安装时直接配置下环境变量
-
-3. 手动运行clang-tidy
-
-   ![image-20230305215228555](./run_code_analysis_on.png)
-
-   
-
-   4.指定使用clang-tidy进行代码分析
-
-   或者手动在全局或工作的settings.json文件中添加`"C_Cpp.codeAnalysis.clangTidy.enabled": true`
-
-   ![image-20230305220151017](./analysis.png)
-
-   
-
-   5. 设置为在文件保存时调用
-
-      ![image-20230305220622725](./save2analysis.png)
-
-   6. 添加检测和禁止检测项
-
-      ![image-20230305224117035](./addCheck.png)
-
-   7.  过滤掉某个文件夹不检测
-
-   ![image-20230305224427870](./filterFloder.png)
-
-   8. 开启微软的代码智能提示功能，命令搜索框输入 settings ，找到open user settings  编辑"C_Cpp.intelliSenseEngine": "disabled",为default
-
-![image-20230305111140902](./intelliSenseEngine.png)
-
-
-
-
-
-# terminal
-
-```shell
-clang-tidy.exe ./main.cpp -checks=cppcoreguidelines-*   
+```mermaid
+journey
+    title compile 
+    section code
+      预处理 : 7: 前端
+      词法分析: 6: 前端
+      语法分析(AST): 6: 前端
+      生成中间代码IR: 5: 前端
+    section Mach-O
+      LLVM代码优化: 4: 后端
+      汇编: 4: 后端
+      链接: 3: 后端
 ```
 
 
 
-# clangd
+# 3. clang-tidy install
 
-1. 标准库头文件的警告/自己头文件的警告
+## 3.1 window:
 
-   编辑settings.json文件，添加对应的配置信息，告诉clangd去对应的位置找头文件
+1. vscode在扩展中搜索clang-tidy并安装(我们这里需要离线手动安装一下 [clang-tidy](https://marketplace.visualstudio.com/items?itemName=notskm.clang-tidy)
 
-   ```json
-   "clangd.fallbackFlags": [
-       "-std=c++17",
-       // "-I${workspaceFolder}",
-       "-I${workspaceFolder}/math",
-       "-Id:/01.soft/mingw64/x86_64-w64-mingw32/include"
-   ]
+2. github搜索[llvm](https://github.com/llvm/llvm-project/)，找到发布包，下载对应的win版本，安装时直接配置下环境变量
+
+3. 插件提供的配置项
+
+   ```shell
+   #Extension Settings
+   #This extension contributes the following settings:
+   clang-tidy.executable: The path to the clang-tidy executable
+   clang-tidy.checks: List of checks to enable or disable
+   clang-tidy.compilerArgs: List of arguments to append to the compiler command line
+   clang-tidy.compilerArgsBefore: List of arguments to prepend to the compiler command line
+   clang-tidy.lintOnSave: Whether or not to lint files when they are saved
+   clang-tidy.buildPath: Path to the build folder. Equivalent to clang-tidy -p /path
+   clang-tidy.fixOnSave: Whether or not to fix files when they are saved
+   clang-tidy.blacklist: A list of regular expressions matching files you don't want to lint
    ```
 
-   
+4. settings配置
 
-# cmake config
+   ```json
+   "C_Cpp.codeAnalysis.clangTidy.enabled": true  //配置文件cpp的分析器使用clang-tidy
+   ```
 
-配置cmake使用的编译工具
+5. 规则配置文件
 
-输入>Edit User-local Cmake Kits 打开cmake-tools-kits.json文件进行相应的编译工具配置
+   > .clang-tidy   #clang-tidy根据此配置文件中的规则项进行检查
 
-```json
-"configurationProvider": "ms-vscode.cmake-tools"
+
+
+## 3.2 linux
+
+1. 源码编译安装
+
+
+
+# 4. using clang-tidy
+
+> **clang-tidy** is a clang-based C++ “linter” tool. Its purpose is to provide an extensible framework for diagnosing and fixing typical programming errors, like style violations, interface misuse, or bugs that can be deduced via static analysis. **clang-tidy** is modular and provides a convenient interface for writing new checks.
+>
+> clang-tidy是一个基于clang的c++“linter”工具。它的目的是提供一个可扩展的框架，用于诊断和修复典型的编程错误，如违反编码风格、接口误用或可以通过静态分析诊断出的错误。Clang-tidy是模块化的，提供了便捷的接口来自定义新的检测项
+
+
+
+## 4.1 check list
+
+[常用检测项](https://clang.llvm.org/extra/clang-tidy/)
+
+```cpp
+Name prefix			Description
+bugprone-			Checks that target bug-prone code constructs.
+concurrency-		Checks related to concurrent programming (including threads, fibers, coroutines, etc.).
+cppcoreguidelines-	Checks related to C++ Core Guidelines.
+modernize-			Checks that advocate usage of modern (currently “modern” means “C++11”) language constructs.
+performance-		Checks that target performance-related issues.
+readability-		Checks that target readability-related issues that don’t relate to any particular coding style.
+...
 ```
 
-CMAKE：`cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1`，生成compile_commands.json ,使用文档
+[常用检测项举例]()
 
-https://clang.llvm.org/docs/JSONCompilationDatabase.html 官方使用说明
+- bugprone-infinite-loop
 
-# .clang-tity
+```cpp
+int i = 0, j = 0;
+while (i < 10) {
+  ++j;
+}
+```
 
-```json
-Checks:'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,'
-WarningsAsErrors: true
+- bugprone-unsafe-functions
+
+```cpp
+strcpy(Buf, Prefix); // warning: function 'strcpy' is not bounds-checking; 'strcpy_s' should be used instead.
+strcat(Buf, Msg);    // warning: function 'strcat' is not bounds-checking; 'strcat_s' should be used instead.
+strcat(Buf, Suffix); // warning: function 'strcat' is not bounds-checking; 'strcat_s' should be used instead.
+```
+
+- performance-faster-string-find
+
+```shell
+str.find("A");
+// becomes
+str.find('A');
+```
+
+- performance-inefficient-vector-operation
+
+```cpp
+std::vector<int> v;
+for (int i = 0; i < n; ++i) {
+  v.push_back(n);
+  // This will trigger the warning since the push_back may cause multiple
+  // memory reallocations in v. This can be avoid by inserting a 'reserve(n)'
+  // statement before the for statement.
+}
+```
+
+- performance-unnecessary-value-param
+
+```shell
+void f(const string Value) {
+  // The warning will suggest making Value a reference.
+}
+```
+
+```shell
+readability-magic-numbers
+modernize-make-shared
+cppcoreguidelines-no-malloc
+cppcoreguidelines-avoid-c-arrays
+...
+```
+
+
+
+## 4.2 屏蔽检查
+
+> lint-command:  
+>
+> //NOLINT 
+>
+> //NOLINTNEXTLINE
+>
+> //NOLINTBEGIN  
+>
+> //NOLINTEND
+
+
+
+## 4.3 .clang-tidy demo
+
+```shell
+Checks:'-*,clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,'
+WarningsAsErrors: 'false'
+HeaderFilterRegex: h
 AnalyzeTemporaryDtors: false
 CheckOptions:
   - key: cppcoreguidelines-avoid-magic-numbers.IgnoredintegerValues
-    value: '100'
+    value: '100' 
 ```
+
+- checks：`-*`表示禁止所有的检测项，`clang-diagnostic-*`表示开启和`clang-diagnostic-`有关的所有检测项
+- WarningsAsErrors：表示将warning的作为error输出
+- HeaderFilterRegex: 
+- AnalyzeTemporaryDtors：
+- CheckOptions：规则可选项
+
+
+
+## 4.4 在linux下使用
+
+>clang-tidy --checks='Checks' test.cpp -- -I ./src/ -x c++
+>其中–checks=可以写‘*’，表示对所有clang-tidy检查项进行检查，上面‘Checks’是指定检查.clang-tidy文件里的检查项（下面介绍）；test.cpp是要检查的文件；-I是你要包含的头文件路径（可去除）；后面-x c++是指定使用c++编译器（很多时候默认是gcc）（可去除）
+
+common.sh
+
+incremental_build.sh
+
+
 
 
 
 # 参考资料
 
-1. vscode+clang-tidy https://www.bilibili.com/video/BV1sR4y1X7WF/?spm_id_from=333.999.0.0&vd_source=c2c035b7a76499e23048bf4c9732483e
-2. clangd是什么？https://clangd.llvm.org/
-3. clang-tidy的检查清单的官方文档：https://clang.llvm.org/extra/clang-tidy/checks/list.html
+1. [vscode+clang-tidy][ https://www.bilibili.com/video/BV1sR4y1X7WF/?spm_id_from=333.999.0.0&vd_source=c2c035b7a76499e23048bf4c9732483e]
 
+2. LLVM [LLVM 编译器基础结构项目](https://llvm.org/)
 
+3. [clangd](https://clangd.llvm.org/)
 
-# A&Q
+4. [clang-tidy的检查清单的官方文档](https://clang.llvm.org/extra/clang-tidy/checks/list.html)
 
-1. centos 如何安装clang-tidy
+   [clang-tidy的检查清单博客翻译](https://blog.csdn.net/qq_43577613/article/details/127292732)
 
-2. 禁止标准库头文件的警告
-3. clang-tidy实现编译了么？使用说明上指定的编译数据库文件有没有拿来做编译使用
-4. 添加的特性选项没有生效，如magic 100 不再提示
-5. 检测项如何规定，使用同一份公共的检测项
-6. vscode插件中介绍的添加的配置项会自动加到.clang-tidy配置中，目前看貌似没有生效
-
-​		
-
-​	linux安装及使用
-
-```shell
-apt-get install clang-tidy
-clang-tidy --checks='Checks' test.cpp -- -I ./src/ -x c++
-其中–checks=可以写‘*’，表示对所有clang-tidy检查项进行检查，上面‘Checks’是指定检查.clang-tidy文件里的检查项（下面介绍）；test.cpp是要检查的文件；-I是你要包含的头文件路径（可去除）；后面-x c++是指定使用c++编译器（很多时候默认是gcc）（可去除）
-```
+5. [介绍 `C++ Core Guidelines `的警告](https://learn.microsoft.com/zh-cn/cpp/code-quality/c26400?view=msvc-170)  
 
 
 
@@ -295,6 +357,10 @@ int main(int argc,char *argv[])
 }
 
 ```
+
+
+
+
 
 
 
